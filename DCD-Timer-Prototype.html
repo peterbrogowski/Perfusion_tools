@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DCD Timer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 400px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        
+        .input-section {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        
+        input[type="datetime-local"] {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            background: white;
+            color: #333;
+        }
+        
+        .button {
+            width: 100%;
+            padding: 15px;
+            margin-top: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .start-button {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .start-button:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .reset-button {
+            background: #ff6b6b;
+            color: white;
+            margin-top: 20px;
+        }
+        
+        .reset-button:hover {
+            background: #ff5252;
+        }
+        
+        .timer-display {
+            display: none;
+            text-align: center;
+        }
+        
+        .timer-display.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .elapsed-time {
+            font-size: 48px;
+            font-weight: 700;
+            margin: 20px 0;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .info-box {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+        
+        .info-box h3 {
+            font-size: 14px;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+        
+        .info-box p {
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .progress-ring {
+            margin: 30px auto;
+            width: 200px;
+            height: 200px;
+            position: relative;
+        }
+        
+        .progress-ring svg {
+            transform: rotate(-90deg);
+        }
+        
+        .progress-ring-circle {
+            fill: none;
+            stroke-width: 10;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 1s linear;
+        }
+        
+        .progress-ring-bg {
+            stroke: rgba(255, 255, 255, 0.2);
+        }
+        
+        .progress-ring-fill {
+            stroke: #4CAF50;
+        }
+        
+        .warning {
+            background: rgba(255, 193, 7, 0.2);
+            border: 2px solid #FFC107;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .warning.show {
+            display: block;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .critical {
+            background: rgba(244, 67, 54, 0.3);
+            border-color: #F44336;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🫀 DCD Timer</h1>
+        
+        <div class="input-section" id="inputSection">
+            <label for="extubationTime">Enter Extubation Date & Time:</label>
+            <input type="datetime-local" id="extubationTime" required>
+            <button class="button start-button" onclick="startTimer()">Start Timer</button>
+        </div>
+        
+        <div class="timer-display" id="timerDisplay">
+            <div class="progress-ring">
+                <svg width="200" height="200">
+                    <circle class="progress-ring-circle progress-ring-bg" 
+                            cx="100" cy="100" r="90"></circle>
+                    <circle class="progress-ring-circle progress-ring-fill" 
+                            id="progressCircle"
+                            cx="100" cy="100" r="90"
+                            stroke-dasharray="565.48"
+                            stroke-dashoffset="565.48"></circle>
+                </svg>
+            </div>
+            
+            <div class="elapsed-time" id="elapsedTime">00:00:00</div>
+            
+            <div class="info-box">
+                <h3>Extubation Time</h3>
+                <p id="extubationDisplay">--</p>
+            </div>
+            
+            <div class="info-box">
+                <h3>Case Abort Time (2 Hour Limit)</h3>
+                <p id="abortTime">--</p>
+            </div>
+            
+            <div class="info-box">
+                <h3>Time Remaining</h3>
+                <p id="timeRemaining">--</p>
+            </div>
+            
+            <div class="warning" id="warningBox">
+                <strong>⚠️ Warning:</strong> <span id="warningText"></span>
+            </div>
+            
+            <button class="button reset-button" onclick="resetTimer()">Reset Timer</button>
+        </div>
+    </div>
+    
+    <script>
+        let timerInterval;
+        let extubationDate;
+        let abortDate;
+        const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+        const circumference = 2 * Math.PI * 90;
+        
+        // Set default datetime to now
+        document.getElementById('extubationTime').value = 
+            new Date().toISOString().slice(0, 16);
+        
+        function startTimer() {
+            const input = document.getElementById('extubationTime').value;
+            if (!input) {
+                alert('Please enter an extubation time');
+                return;
+            }
+            
+            extubationDate = new Date(input);
+            abortDate = new Date(extubationDate.getTime() + TWO_HOURS_MS);
+            
+            // Display times
+            document.getElementById('extubationDisplay').textContent = 
+                extubationDate.toLocaleString('en-US', {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true,
+                    month: 'short',
+                    day: 'numeric'
+                });
+            
+            document.getElementById('abortTime').textContent = 
+                abortDate.toLocaleString('en-US', {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true,
+                    month: 'short',
+                    day: 'numeric'
+                });
+            
+            // Hide input, show timer
+            document.getElementById('inputSection').style.display = 'none';
+            document.getElementById('timerDisplay').classList.add('active');
+            
+            // Start the timer
+            updateTimer();
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+        
+        function updateTimer() {
+            const now = new Date();
+            const elapsed = now - extubationDate;
+            const remaining = abortDate - now;
+            
+            // Format elapsed time
+            const hours = Math.floor(elapsed / (1000 * 60 * 60));
+            const minutes = Math.floor((elapsed % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((elapsed % (1000 * 60)) / 1000);
+            
+            document.getElementById('elapsedTime').textContent = 
+                `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            
+            // Update progress ring
+            const progress = Math.min(elapsed / TWO_HOURS_MS, 1);
+            const offset = circumference - (progress * circumference);
+            document.getElementById('progressCircle').style.strokeDashoffset = offset;
+            
+            // Update progress ring color based on time
+            const progressCircle = document.getElementById('progressCircle');
+            if (progress >= 0.9) {
+                progressCircle.style.stroke = '#F44336'; // Red
+            } else if (progress >= 0.75) {
+                progressCircle.style.stroke = '#FFC107'; // Yellow
+            } else {
+                progressCircle.style.stroke = '#4CAF50'; // Green
+            }
+            
+            // Format remaining time
+            if (remaining > 0) {
+                const remHours = Math.floor(remaining / (1000 * 60 * 60));
+                const remMinutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+                const remSeconds = Math.floor((remaining % (1000 * 60)) / 1000);
+                
+                document.getElementById('timeRemaining').textContent = 
+                    `${String(remHours).padStart(2, '0')}:${String(remMinutes).padStart(2, '0')}:${String(remSeconds).padStart(2, '0')}`;
+                
+                // Show warnings
+                const warningBox = document.getElementById('warningBox');
+                const warningText = document.getElementById('warningText');
+                
+                if (remaining <= 10 * 60 * 1000) { // 10 minutes
+                    warningBox.classList.add('show', 'critical');
+                    warningText.textContent = `Critical: ${Math.floor(remaining / 60000)} minutes remaining!`;
+                } else if (remaining <= 30 * 60 * 1000) { // 30 minutes
+                    warningBox.classList.add('show');
+                    warningBox.classList.remove('critical');
+                    warningText.textContent = `${Math.floor(remaining / 60000)} minutes remaining`;
+                } else {
+                    warningBox.classList.remove('show');
+                }
+            } else {
+                document.getElementById('timeRemaining').textContent = 'EXPIRED';
+                document.getElementById('timeRemaining').style.color = '#F44336';
+                clearInterval(timerInterval);
+                
+                const warningBox = document.getElementById('warningBox');
+                warningBox.classList.add('show', 'critical');
+                document.getElementById('warningText').textContent = '2-hour limit has been reached!';
+            }
+        }
+        
+        function resetTimer() {
+            clearInterval(timerInterval);
+            document.getElementById('inputSection').style.display = 'block';
+            document.getElementById('timerDisplay').classList.remove('active');
+            document.getElementById('warningBox').classList.remove('show', 'critical');
+            document.getElementById('timeRemaining').style.color = 'white';
+            
+            // Reset to current time
+            document.getElementById('extubationTime').value = 
+                new Date().toISOString().slice(0, 16);
+        }
+    </script>
+</body>
+</html>
